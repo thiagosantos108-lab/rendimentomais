@@ -3,431 +3,674 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rendimento Plus - Plataforma de Estudos</title>
+  <title>Rendimento + | Plataforma de Alta Performance</title>
   
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Supabase JS Client -->
+  <!-- SDK do Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Ícones Phosphor -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    @keyframes pulse-gold {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
-      50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); }
+    :root {
+      --bg-color: #f8fafc;
+      --sidebar-bg: #ffffff;
+      --card-bg: #ffffff;
+      --text-color: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --card-highlight: linear-gradient(135deg, #2563eb, #1e40af);
+      --input-bg: #ffffff;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     }
-    .btn-pro-pulse {
-      animation: pulse-gold 2s infinite;
+
+    [data-theme="dark"] {
+      --bg-color: #0f172a;
+      --sidebar-bg: #1e293b;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --card-highlight: linear-gradient(135deg, #1e3a8a, #0f172a);
+      --input-bg: #0f172a;
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
     }
-    .badge-pro {
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      color: #ffffff;
-      box-shadow: 0 2px 10px rgba(217, 119, 6, 0.4);
-    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; transition: background-color 0.2s, color 0.2s; }
+    body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; display: flex; }
+
+    .hidden { display: none !important; }
+
+    /* NOTIFICAÇÃO TOAST CUSTOMIZADA */
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { display: flex; align-items: center; gap: 12px; background: var(--card-bg); color: var(--text-color); padding: 12px 20px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: var(--shadow); animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); min-width: 280px; font-weight: 600; font-size: 0.9rem; }
+    .toast.success { border-left: 5px solid var(--accent); }
+    .toast.error { border-left: 5px solid var(--danger); }
+    .toast i { font-size: 1.3rem; }
+    .toast.success i { color: var(--accent); }
+    .toast.error i { color: var(--danger); }
+
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* TELA DE AUTENTICAÇÃO REDESENHADA */
+    .auth-wrapper { min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent); padding: 1.5rem; }
+    .auth-card { background: var(--card-bg); padding: 2.5rem; border-radius: 1.25rem; border: 1px solid var(--border-color); box-shadow: var(--shadow); width: 100%; max-width: 420px; }
+    .auth-brand { font-size: 1.6rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+    .auth-subtitle { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .auth-tabs { display: flex; background: var(--bg-color); padding: 4px; border-radius: 0.75rem; border: 1px solid var(--border-color); margin-bottom: 1.5rem; }
+    .auth-tab { flex: 1; border: none; background: transparent; padding: 0.6rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; }
+    .auth-tab.active { background: var(--card-bg); color: var(--primary); box-shadow: var(--shadow); }
+
+    /* LAYOUT PRINCIPAL */
+    aside { width: 260px; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem; flex-shrink: 0; }
+    .brand { font-size: 1.3rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 0.6rem; }
+    
+    .menu-list { list-style: none; margin-top: 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .menu-item a { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--text-muted); text-decoration: none; font-weight: 600; border-radius: 0.5rem; cursor: pointer; }
+    .menu-item.active a, .menu-item a:hover { background: rgba(37, 99, 235, 0.1); color: var(--primary); }
+
+    .app-container { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+
+    /* HEADER */
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .header-actions { display: flex; align-items: center; gap: 1rem; }
+    .theme-toggle { background: transparent; border: 1px solid var(--border-color); color: var(--text-color); padding: 0.5rem; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+    .badge-pro { background: #fef3c7; color: #b45309; padding: 0.3rem 0.8rem; border-radius: 9999px; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; }
+
+    main { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* CARDS & GRIDS */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem; box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem; }
+    .stat-icon { width: 48px; height: 48px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .stat-icon.blue { background: rgba(37, 99, 235, 0.1); color: var(--primary); }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.1); color: var(--accent); }
+    .stat-icon.orange { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .stat-value { font-size: 1.5rem; font-weight: 800; margin-top: 0.2rem; }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+
+    .hero-card { background: var(--card-highlight); color: white; padding: 2rem; border-radius: 1rem; margin-bottom: 2rem; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; }
+    .hero-content small { text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; opacity: 0.8; font-size: 0.75rem; }
+    .hero-content h1 { font-size: 2rem; margin: 0.4rem 0; font-weight: 800; }
+    .hero-content p { opacity: 0.9; font-size: 0.95rem; }
+
+    .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } body { flex-direction: column; } aside { width: 100%; } }
+
+    .card-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+    .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+
+    /* LISTAS */
+    .cycle-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .cycle-item { background: var(--bg-color); border: 1px solid var(--border-color); padding: 1rem; border-radius: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+    .cycle-item-info strong { display: block; font-size: 0.95rem; }
+    .cycle-item-info span { font-size: 0.8rem; color: var(--text-muted); }
+    .badge-stat { background: rgba(37, 99, 235, 0.1); color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 0.375rem; font-size: 0.8rem; font-weight: 700; }
+
+    /* ELEMENTOS DE FORMULÁRIO */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: var(--primary); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-color); }
+    .btn-secondary:hover { background: var(--border-color); }
+    .btn-chip { padding: 0.35rem 0.75rem; border-radius: 9999px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-muted); }
+    .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-color); font-size: 0.95rem; outline: none; }
+    .form-control:focus { border-color: var(--primary); }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal { background: var(--card-bg); padding: 2rem; border-radius: 1rem; border: 1px solid var(--border-color); width: 100%; max-width: 480px; box-shadow: var(--shadow); }
+
+    /* TIMER */
+    .timer-display { font-size: 3.8rem; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 0.5rem 0; color: var(--primary); font-family: monospace; }
+    .timer-controls { display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .timer-chips { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col justify-between">
+<body>
 
-  <!-- HEADER / BARRA SUPERIOR -->
-  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <i class="fa-solid fa-graduation-cap text-amber-500 text-2xl"></i>
-        <span class="font-bold text-xl tracking-tight text-white">Rendimento<span class="text-amber-500">Plus</span></span>
-      </div>
+  <!-- CONTAINER DE NOTIFICAÇÕES (TOASTS) -->
+  <div id="toast-container"></div>
 
-      <!-- STATUS DA CONTA & AÇÕES -->
-      <div id="userSection" class="flex items-center space-x-4">
-        <!-- Status do Plano -->
-        <div id="planBadgeContainer" class="flex items-center space-x-2">
-          <span id="planBadge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-700 text-slate-300">
-            Plano Free
-          </span>
-          <button id="btnUpgradeHeader" onclick="openProModal()" class="btn-pro-pulse bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-crown text-amber-950"></i>
-            <span>SEJA PRO (R$ 19,90)</span>
-          </button>
-        </div>
-
-        <!-- Info do Usuário -->
-        <div id="userInfo" class="hidden items-center space-x-2 border-l border-slate-700 pl-4">
-          <span id="userEmail" class="text-xs text-slate-400 hidden sm:inline"></span>
-          <button onclick="logout()" class="text-slate-400 hover:text-red-400 text-sm p-1 transition" title="Sair">
-            <i class="fa-solid fa-right-from-bracket"></i>
-          </button>
-        </div>
-        <button id="btnLogin" onclick="openAuthModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-1.5 rounded-lg text-sm font-semibold transition">
-          Entrar
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
-    
-    <!-- DASHBOARD -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- ================= TELA DE AUTENTICAÇÃO ================= -->
+  <div id="auth-screen" class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-brand"><i class="ph ph-lightning-fill"></i> Rendimento +</div>
+      <div class="auth-subtitle">Acesse sua plataforma de estudos de alta performance</div>
       
-      <!-- COLUNA DA ESQUERDA: CADASTRO E MATÉRIAS -->
-      <div class="space-y-6">
-        
-        <!-- CARD: CADASTRO DE MATÉRIA -->
-        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-lg">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-bold text-lg text-white flex items-center gap-2">
-              <i class="fa-solid fa-book-bookmark text-amber-500"></i>
-              Minhas Matérias
-            </h2>
-            <span id="subjectCountBadge" class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">0/3 Free</span>
-          </div>
-
-          <form id="addSubjectForm" onsubmit="handleAddSubject(event)" class="space-y-3">
-            <div>
-              <input type="text" id="subjectName" placeholder="Nome da matéria (ex: Direito Constitucional)" required
-                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500">
-            </div>
-            <div>
-              <input type="color" id="subjectColor" value="#f59e0b" class="w-full h-8 rounded cursor-pointer bg-slate-900 border border-slate-700">
-            </div>
-            <button type="submit" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 rounded-lg text-sm transition flex items-center justify-center gap-2">
-              <i class="fa-solid fa-plus text-xs"></i> Adicionar Matéria
-            </button>
-          </form>
-
-          <!-- LISTA DE MATÉRIAS -->
-          <div id="subjectsList" class="mt-4 space-y-2 max-h-60 overflow-y-auto">
-            <p class="text-xs text-slate-500 text-center py-4">Nenhuma matéria cadastrada.</p>
-          </div>
-        </div>
-
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="btn-tab-login" onclick="switchAuthTab('login')">Entrar</button>
+        <button class="auth-tab" id="btn-tab-register" onclick="switchAuthTab('register')">Criar Conta</button>
       </div>
 
-      <!-- COLUNA CENTRAL/DIREITA: CRONÔMETRO DE ESTUDOS E ESTATÍSTICAS -->
-      <div class="md:col-span-2 space-y-6">
-        
-        <!-- CARD: TIMER / CRONÔMETRO -->
-        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg text-center relative overflow-hidden">
-          <div id="freeTimerWarning" class="hidden mb-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs py-1.5 px-3 rounded-lg">
-            <i class="fa-solid fa-circle-info"></i> Plano Free: Limite de 30 minutos por sessão.
-          </div>
-
-          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Sessão de Estudo Ativa</h3>
-          
-          <div class="my-4">
-            <select id="timerSubjectSelect" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-none focus:border-amber-500">
-              <option value="">Selecione a Matéria...</option>
-            </select>
-          </div>
-
-          <div id="timerDisplay" class="text-6xl font-mono font-bold text-amber-500 my-6 tracking-tight">
-            00:00:00
-          </div>
-
-          <div class="flex justify-center items-center gap-4">
-            <button id="btnStartTimer" onclick="startTimer()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition flex items-center gap-2">
-              <i class="fa-solid fa-play"></i> Iniciar
-            </button>
-            <button id="btnPauseTimer" onclick="pauseTimer()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-6 py-2.5 rounded-lg text-sm transition items-center gap-2">
-              <i class="fa-solid fa-pause"></i> Pausar
-            </button>
-            <button id="btnStopTimer" onclick="stopTimer()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold px-6 py-2.5 rounded-lg text-sm transition flex items-center gap-2">
-              <i class="fa-solid fa-square"></i> Finalizar
-            </button>
-          </div>
+      <!-- FORMULÁRIO DE LOGIN -->
+      <form id="form-login">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required>
         </div>
-
-        <!-- CARD: HISTÓRICO -->
-        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-lg">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-bold text-lg text-white flex items-center gap-2">
-              <i class="fa-solid fa-clock-rotate-left text-amber-500"></i>
-              Histórico de Estudos
-            </h2>
-          </div>
-          <div id="historyList" class="space-y-2 max-h-64 overflow-y-auto text-sm">
-            <p class="text-xs text-slate-500 text-center py-4">Nenhuma sessão registrada.</p>
-          </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
         </div>
+        <button type="submit" class="btn" style="width: 100%;">Entrar na Plataforma</button>
+      </form>
 
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- FOOTER -->
-  <footer class="bg-slate-950 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-    Rendimento Plus &copy; 2026 - Todos os direitos reservados.
-  </footer>
-
-  <!-- MODAL: OFERTA DO PLANO PRO -->
-  <div id="proModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-800 border border-amber-500/30 rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
-      <button onclick="closeProModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-        <i class="fa-solid fa-xmark text-lg"></i>
-      </button>
-
-      <div class="text-center">
-        <div class="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-500 mb-3 border border-amber-500/20">
-          <i class="fa-solid fa-crown text-3xl"></i>
+      <!-- FORMULÁRIO DE CADASTRO -->
+      <form id="form-register" class="hidden">
+        <div class="form-group">
+          <label>Nome Completo</label>
+          <input type="text" id="reg-name" class="form-control" placeholder="Seu Nome" required>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-1">Seja Rendimento<span class="text-amber-500">Plus PRO</span></h3>
-        <p class="text-xs text-slate-400 mb-6">Desbloqueie todo o seu potencial de estudos sem limitações.</p>
-      </div>
-
-      <div class="space-y-3 mb-6">
-        <div class="flex items-start gap-3 bg-slate-900/60 p-3 rounded-lg border border-slate-700/50">
-          <i class="fa-solid fa-check text-amber-500 mt-1"></i>
-          <div class="text-xs">
-            <p class="font-semibold text-slate-200">Matérias Ilimitadas</p>
-            <p class="text-slate-400">Cadastre quantas matérias e disciplinas precisar.</p>
-          </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="seu@email.com" required>
         </div>
-
-        <div class="flex items-start gap-3 bg-slate-900/60 p-3 rounded-lg border border-slate-700/50">
-          <i class="fa-solid fa-check text-amber-500 mt-1"></i>
-          <div class="text-xs">
-            <p class="font-semibold text-slate-200">Cronômetro Sem Limite de Tempo</p>
-            <p class="text-slate-400">Estude por horas sem interrupção de 30 minutos.</p>
-          </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="Mínimo 6 caracteres" required minlength="6">
         </div>
-
-        <div class="flex items-start gap-3 bg-slate-900/60 p-3 rounded-lg border border-slate-700/50">
-          <i class="fa-solid fa-check text-amber-500 mt-1"></i>
-          <div class="text-xs">
-            <p class="font-semibold text-slate-200">Histórico Completo & Relatórios</p>
-            <p class="text-slate-400">Acesse seus dados ilimitados para acompanhar a evolução.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center mb-6">
-        <span class="text-xs text-amber-400 uppercase tracking-widest font-bold">Apenas</span>
-        <div class="text-3xl font-extrabold text-white my-1">R$ 19,90 <span class="text-xs font-normal text-slate-400">/mês</span></div>
-        <p class="text-[10px] text-slate-400">Cancele quando quiser. Sem fidelidade.</p>
-      </div>
-
-      <a id="btnMercadoPago" href="#" target="_blank" onclick="handleCheckoutRedirect(event)"
-        class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-center block transition shadow-lg shadow-amber-500/20">
-        <i class="fa-solid fa-bolt mr-1"></i> Assinar Plano PRO Agora
-      </a>
+        <button type="submit" class="btn" style="width: 100%;">Criar Conta Grátis</button>
+      </form>
     </div>
   </div>
 
-  <!-- JAVASCRIPT PRINCIPAL -->
-  <script>
-    // ==========================================
-    // CONFIGURAÇÃO DO SUPABASE & MERCADO PAGO
-    // ==========================================
-    const SUPABASE_URL = "SUA_SUPABASE_URL_AQUI";
-    const SUPABASE_ANON_KEY = "SUA_SUPABASE_ANON_KEY_AQUI";
+  <!-- ================= APP PRINCIPAL ================= -->
+  <div id="app-screen" class="hidden" style="width: 100%; display: flex;">
     
-    // Cole aqui o seu Link de Pagamento do Mercado Pago de R$ 19,90
-    const MERCADO_PAGO_CHECKOUT_URL = "https://mpago.la/SEU_LINK_AQUI";
+    <!-- SIDEBAR DE NAVEGAÇÃO -->
+    <aside>
+      <div>
+        <div class="brand"><i class="ph ph-lightning-fill"></i> Rendimento +</div>
+        <ul class="menu-list">
+          <li class="menu-item active" id="menu-dashboard"><a onclick="navigate('dashboard')"><i class="ph ph-squares-four"></i> Dashboard</a></li>
+          <li class="menu-item" id="menu-edital"><a onclick="navigate('edital')"><i class="ph ph-book-open"></i> Meu Edital</a></li>
+          <li class="menu-item" id="menu-erros"><a onclick="navigate('erros')"><i class="ph ph-x-circle"></i> Caderno de Erros</a></li>
+          <li class="menu-item" id="menu-simulados"><a onclick="navigate('simulados')"><i class="ph ph-trophy"></i> Simulados</a></li>
+          <li class="menu-item" id="menu-config"><a onclick="navigate('config')"><i class="ph ph-gear"></i> Configurações</a></li>
+        </ul>
+      </div>
+      <div>
+        <button class="btn" style="width: 100%; margin-bottom: 0.75rem; background: var(--accent);" onclick="openTimerModal('Sessão Livre')">
+          <i class="ph ph-timer-bold"></i> Cronômetro Livre
+        </button>
+        <button class="btn btn-secondary" style="width: 100%;" onclick="logout()">
+          <i class="ph ph-sign-out"></i> Sair
+        </button>
+      </div>
+    </aside>
 
-    // Estado da Aplicação
-    let userPlan = 'free'; // 'free' ou 'pro'
-    let subjects = [];
-    let history = [];
-    let timerInterval = null;
-    let timerSeconds = 0;
-    let isTimerRunning = false;
+    <!-- CONTAINER DE CONTEÚDO -->
+    <div class="app-container">
+      <header>
+        <div>
+          <h2>Olá, <span id="user-display-name">Concurseiro</span>!</h2>
+          <small style="color: var(--text-muted);">Painel de controle do seu rendimento de estudos.</small>
+        </div>
+        <div class="header-actions">
+          <span class="badge-pro"><i class="ph ph-crown-fill"></i> Conta Ativa</span>
+          <button class="theme-toggle" onclick="toggleTheme()"><i class="ph ph-moon" id="theme-icon"></i></button>
+        </div>
+      </header>
 
-    // Inicialização
-    document.addEventListener('DOMContentLoaded', () => {
-      updatePlanUI();
-      renderSubjects();
-      renderHistory();
+      <main>
+        <!-- ABA: DASHBOARD -->
+        <section id="view-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon blue"><i class="ph ph-clock"></i></div>
+              <div><div class="stat-label">Total Estudado</div><div class="stat-value" id="dash-total-horas">0.0h</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green"><i class="ph ph-book"></i></div>
+              <div><div class="stat-label">Matérias Mapeadas</div><div class="stat-value" id="dash-total-materias">0</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon orange"><i class="ph ph-fire"></i></div>
+              <div><div class="stat-label">Ofensiva</div><div class="stat-value">1 Dia</div></div>
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <div class="hero-content">
+              <small>🎯 Matéria Recomendada (Maior Peso)</small>
+              <h1 id="hero-materia">Nenhuma Matéria</h1>
+              <p id="hero-materia-sub">Cadastre disciplinas na aba "Meu Edital"</p>
+            </div>
+            <button class="btn" style="background: white; color: var(--primary);" id="btn-estudar-hero" onclick="estudarMateriaRecomendada()">
+              <i class="ph ph-play-fill"></i> Estudar Agora
+            </button>
+          </div>
+
+          <div class="dashboard-grid">
+            <div>
+              <div class="card-box">
+                <div class="card-title"><span>📊 Rendimento Geral</span></div>
+                <canvas id="chartAcertos" height="140"></canvas>
+              </div>
+            </div>
+
+            <div>
+              <div class="card-box">
+                <div class="card-title"><span>📋 Fila do Ciclo</span></div>
+                <div class="cycle-list" id="cycle-list-container">
+                  <p style="color: var(--text-muted); font-size: 0.9rem;">Nenhuma matéria cadastrada...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA: MEU EDITAL -->
+        <section id="view-edital" class="hidden">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+              <h2 style="font-size: 1.5rem; font-weight: 800;">Edital Verticalizado</h2>
+              <small style="color: var(--text-muted);">As matérias cadastradas aqui alimentam automaticamente a Fila do Ciclo.</small>
+            </div>
+            <button class="btn" onclick="openModal('modal-materia-completa')">
+              <i class="ph ph-plus-circle-bold"></i> Nova Disciplina
+            </button>
+          </div>
+
+          <div class="card-box" style="padding: 0; overflow: hidden;">
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                <thead>
+                  <tr style="background: var(--bg-color); border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                    <th style="padding: 1rem 1.5rem;">Disciplina</th>
+                    <th style="padding: 1rem;">Peso da Prova</th>
+                    <th style="padding: 1rem;">Dificuldade</th>
+                    <th style="padding: 1rem; text-align: right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="table-materias-body">
+                  <!-- Alimentado via JS/Supabase -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA: CADERNO DE ERROS -->
+        <section id="view-erros" class="hidden">
+          <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem;">Caderno de Erros</h2>
+          <div class="card-box"><p style="color: var(--text-muted);">Em breve: Registre e revise suas questões incorretas.</p></div>
+        </section>
+
+        <!-- ABA: SIMULADOS -->
+        <section id="view-simulados" class="hidden">
+          <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem;">Simulados</h2>
+          <div class="card-box"><p style="color: var(--text-muted);">Em breve: Histórico de pontuação em simulados.</p></div>
+        </section>
+
+        <!-- ABA: CONFIGURAÇÕES -->
+        <section id="view-config" class="hidden">
+          <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem;">Configurações</h2>
+          <div class="card-box" style="max-width: 500px;">
+            <div class="form-group"><label>Nome</label><input type="text" id="config-name" class="form-control"></div>
+            <button class="btn" onclick="salvarConfiguracoes()">Salvar Alterações</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: CRONÔMETRO DE ESTUDOS -->
+  <div id="modal-timer" class="modal-overlay hidden">
+    <div class="modal" style="text-align: center; max-width: 480px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 id="timer-materia-title" style="font-size: 1.2rem; font-weight: 800;">Sessão de Estudos</h3>
+        <button onclick="fecharModal('modal-timer')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);"><i class="ph ph-x"></i></button>
+      </div>
+
+      <div class="timer-display" id="timer-clock">30:00</div>
+
+      <div class="timer-chips">
+        <button class="btn-chip" onclick="addMinutes(5)">+5 min</button>
+        <button class="btn-chip" onclick="addMinutes(15)">+15 min</button>
+        <button class="btn-chip" onclick="addMinutes(30)">+30 min</button>
+        <button class="btn-chip" style="color: var(--danger);" onclick="resetTimer()">Zerar</button>
+      </div>
+
+      <div class="timer-controls">
+        <button class="btn" id="btn-start-timer" onclick="toggleTimer()" style="width: 140px;">
+          <i class="ph ph-play-fill"></i> <span id="label-timer-btn">Iniciar</span>
+        </button>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-color); margin-top: 1.5rem; padding-top: 1rem;">
+        <button class="btn btn-secondary" style="width: 100%;" onclick="finalizarEGravarSessao()">
+          <i class="ph ph-check-circle-fill" style="color: var(--accent);"></i> Encerrar e Salvar no Banco
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADICIONAR MATÉRIA -->
+  <div id="modal-materia-completa" class="modal-overlay hidden">
+    <div class="modal">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.25rem; font-weight: 800;">Cadastrar Disciplina</h3>
+        <button onclick="fecharModal('modal-materia-completa')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;"><i class="ph ph-x"></i></button>
+      </div>
+
+      <form id="form-cadastrar-materia">
+        <div class="form-group">
+          <label>Nome da Disciplina</label>
+          <input type="text" id="mat-nome" class="form-control" placeholder="Ex: Direito Administrativo" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label>Peso (1 a 5)</label>
+            <input type="number" id="mat-peso" step="0.5" class="form-control" value="1.0" required>
+          </div>
+          <div class="form-group">
+            <label>Dificuldade (1 a 5)</label>
+            <input type="number" id="mat-dificuldade" class="form-control" min="1" max="5" value="3" required>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="fecharModal('modal-materia-completa')">Cancelar</button>
+          <button type="submit" class="btn" style="flex: 1;">Salvar Disciplina</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= LÓGICA JAVASCRIPT ================= -->
+  <script>
+    const SUPABASE_URL = 'https://dfbhekahiffsqwyyrfst.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmYmhla2FoaWZmc3F3eXlyZnN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1OTY2OTAsImV4cCI6MjEwMTE3MjY5MH0._5w0w05ZJOHft-cL44eSmsneKEY7HZYRdmJh-4UliT0';
+
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let activeMateria = "Geral";
+    let chartInstance = null;
+    let currentUser = null;
+
+    // SISTEMA DE NOTIFICAÇÕES (TOASTS)
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<i class="ph ph-${type === 'success' ? 'check-circle-fill' : 'warning-circle-fill'}"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // INICIALIZAÇÃO DA SESSÃO
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedUser = localStorage.getItem('rendimento_user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        iniciarSessao();
+      }
     });
 
-    // Atualiza a Interface com base no Plano do Usuário (Free vs PRO)
-    function updatePlanUI() {
-      const planBadge = document.getElementById('planBadge');
-      const btnUpgradeHeader = document.getElementById('btnUpgradeHeader');
-      const subjectCountBadge = document.getElementById('subjectCountBadge');
-      const freeTimerWarning = document.getElementById('freeTimerWarning');
-
-      if (userPlan === 'pro') {
-        planBadge.className = "px-3 py-1 text-xs font-bold rounded-full badge-pro flex items-center gap-1";
-        planBadge.innerHTML = '<i class="fa-solid fa-crown text-xs"></i> PRO ⭐';
-        btnUpgradeHeader.classList.add('hidden');
-        subjectCountBadge.textContent = `${subjects.length} Matérias (Ilimitado)`;
-        freeTimerWarning.classList.add('hidden');
-      } else {
-        planBadge.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-700 text-slate-300";
-        planBadge.textContent = "Plano Free";
-        btnUpgradeHeader.classList.remove('hidden');
-        subjectCountBadge.textContent = `${subjects.length}/3 Free`;
-        freeTimerWarning.classList.remove('hidden');
-      }
+    function switchAuthTab(tab) {
+      document.getElementById('btn-tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('btn-tab-register').classList.toggle('active', tab === 'register');
+      document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
     }
 
-    // Modal PRO
-    function openProModal() {
-      document.getElementById('proModal').classList.remove('hidden');
-    }
-
-    function closeProModal() {
-      document.getElementById('proModal').classList.add('hidden');
-    }
-
-    function handleCheckoutRedirect(e) {
-      if (MERCADO_PAGO_CHECKOUT_URL.includes("SEU_LINK_AQUI")) {
-        e.preventDefault();
-        alert("Atenção: Configure o seu link do Mercado Pago no código 'MERCADO_PAGO_CHECKOUT_URL'.");
-      }
-    }
-
-    // Gerenciamento de Matérias com Limite
-    function handleAddSubject(e) {
+    // AUTH LOGIN
+    document.getElementById('form-login').addEventListener('submit', (e) => {
       e.preventDefault();
-      
-      // Validação do Limite Free (Máximo 3)
-      if (userPlan === 'free' && subjects.length >= 3) {
-        openProModal();
-        return;
-      }
+      const email = document.getElementById('login-email').value;
+      const name = email.split('@')[0].toUpperCase();
+      currentUser = { name, email };
+      localStorage.setItem('rendimento_user', JSON.stringify(currentUser));
+      showToast(`Bem-vindo de volta, ${name}!`);
+      iniciarSessao();
+    });
 
-      const nameInput = document.getElementById('subjectName');
-      const colorInput = document.getElementById('subjectColor');
+    // AUTH REGISTER
+    document.getElementById('form-register').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value;
+      const email = document.getElementById('reg-email').value;
+      currentUser = { name, email };
+      localStorage.setItem('rendimento_user', JSON.stringify(currentUser));
+      showToast('Conta criada com sucesso!');
+      iniciarSessao();
+    });
 
-      const newSubject = {
-        id: Date.now(),
-        name: nameInput.value.trim(),
-        color: colorInput.value
-      };
-
-      subjects.push(newSubject);
-      nameInput.value = '';
-      
-      updatePlanUI();
-      renderSubjects();
+    function iniciarSessao() {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      document.getElementById('user-display-name').innerText = currentUser.name;
+      document.getElementById('config-name').value = currentUser.name;
+      navigate('dashboard');
+      carregarDadosEditalECiclo();
+      carregarHorasTotais();
     }
 
-    function renderSubjects() {
-      const list = document.getElementById('subjectsList');
-      const select = document.getElementById('timerSubjectSelect');
-      
-      if (subjects.length === 0) {
-        list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nenhuma matéria cadastrada.</p>`;
-        select.innerHTML = `<option value="">Selecione a Matéria...</option>`;
-        return;
-      }
-
-      list.innerHTML = subjects.map(s => `
-        <div class="flex items-center justify-between bg-slate-900 p-2.5 rounded-lg border border-slate-700">
-          <div class="flex items-center space-x-2">
-            <span class="w-3 h-3 rounded-full" style="background-color: ${s.color}"></span>
-            <span class="text-xs font-medium text-slate-200">${s.name}</span>
-          </div>
-          <button onclick="deleteSubject(${s.id})" class="text-slate-500 hover:text-red-400 text-xs">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-      `).join('');
-
-      select.innerHTML = `<option value="">Selecione a Matéria...</option>` + 
-        subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    function logout() {
+      localStorage.removeItem('rendimento_user');
+      currentUser = null;
+      document.getElementById('app-screen').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+      showToast('Sessão encerrada.', 'error');
     }
 
-    function deleteSubject(id) {
-      subjects = subjects.filter(s => s.id !== id);
-      updatePlanUI();
-      renderSubjects();
-    }
+    // CARREGAR DADOS DO EDITAL E CICLO
+    async function carregarDadosEditalECiclo() {
+      const { data: materias, error } = await db.from('fila_ciclo_view').select('*');
+      if (error) return console.error(error);
 
-    // Cronômetro de Estudos com Limite de 30 minutos no Free
-    function startTimer() {
-      const subjectSelect = document.getElementById('timerSubjectSelect');
-      if (!subjectSelect.value) {
-        alert("Por favor, selecione uma matéria para iniciar o estudo.");
-        return;
-      }
+      document.getElementById('dash-total-materias').innerText = materias.length;
 
-      if (isTimerRunning) return;
-      
-      isTimerRunning = true;
-      document.getElementById('btnStartTimer').classList.add('hidden');
-      document.getElementById('btnPauseTimer').classList.remove('hidden');
-      document.getElementById('btnPauseTimer').classList.add('flex');
-
-      timerInterval = setInterval(() => {
-        timerSeconds++;
-        
-        // Limite de 30 minutos (1800 segundos) para o Plano Free
-        if (userPlan === 'free' && timerSeconds >= 1800) {
-          pauseTimer();
-          alert("Sua sessão do Plano Free atingiu o limite de 30 minutos. Torne-se PRO para estudar sem limitações!");
-          openProModal();
-          return;
-        }
-
-        updateTimerDisplay();
-      }, 1000);
-    }
-
-    function pauseTimer() {
-      isTimerRunning = false;
-      clearInterval(timerInterval);
-      document.getElementById('btnStartTimer').classList.remove('hidden');
-      document.getElementById('btnPauseTimer').classList.add('hidden');
-      document.getElementById('btnPauseTimer').classList.remove('flex');
-    }
-
-    function stopTimer() {
-      if (timerSeconds > 0) {
-        const subjectSelect = document.getElementById('timerSubjectSelect');
-        const subjectId = parseInt(subjectSelect.value);
-        const subject = subjects.find(s => s.id === subjectId);
-
-        if (subject) {
-          const session = {
-            id: Date.now(),
-            subjectName: subject.name,
-            duration: timerSeconds,
-            date: new Date().toLocaleDateString('pt-BR')
-          };
-          history.unshift(session);
-          renderHistory();
+      // ALIMENTAR TABELA MEU EDITAL
+      const tableBody = document.getElementById('table-materias-body');
+      if (tableBody) {
+        if (materias.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="4" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">Nenhuma matéria cadastrada.</td></tr>`;
+        } else {
+          tableBody.innerHTML = materias.map(m => `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 1rem 1.5rem; font-weight: 700;">${m.nome}</td>
+              <td style="padding: 1rem;"><span class="badge-stat">Peso ${m.peso}</span></td>
+              <td style="padding: 1rem;">Nível ${m.dificuldade}</td>
+              <td style="padding: 1rem; text-align: right;">
+                <button onclick="deletarMateria('${m.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size: 1.1rem;"><i class="ph ph-trash"></i></button>
+              </td>
+            </tr>
+          `).join('');
         }
       }
 
-      pauseTimer();
-      timerSeconds = 0;
-      updateTimerDisplay();
+      // ALIMENTAR FILA DO CICLO AUTOMÁTICA
+      const cycleContainer = document.getElementById('cycle-list-container');
+      if (cycleContainer) {
+        if (materias.length === 0) {
+          cycleContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">Cadastre disciplinas no Edital para montar o ciclo.</p>`;
+          document.getElementById('hero-materia').innerText = "Cadastre no Edital";
+          document.getElementById('hero-materia-sub').innerText = "Crie matérias na aba Meu Edital";
+        } else {
+          cycleContainer.innerHTML = materias.map((m, index) => `
+            <div class="cycle-item">
+              <div class="cycle-item-info">
+                <strong>${index + 1}. ${m.nome}</strong>
+                <span>Peso ${m.peso} • Dificuldade ${m.dificuldade}</span>
+              </div>
+              <button class="btn-chip" onclick="openTimerModal('${m.nome}')">Estudar</button>
+            </div>
+          `).join('');
+
+          document.getElementById('hero-materia').innerText = materias[0].nome;
+          document.getElementById('hero-materia-sub').innerText = `Prioridade Alta • Peso ${materias[0].peso} • Dif ${materias[0].dificuldade}`;
+          activeMateria = materias[0].nome;
+        }
+      }
+    }
+
+    // CADASTRAR MATÉRIA
+    document.getElementById('form-cadastrar-materia').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('mat-nome').value;
+      const peso = parseFloat(document.getElementById('mat-peso').value);
+      const dif = parseInt(document.getElementById('mat-dificuldade').value);
+
+      const { error } = await db.from('materias').insert([{ nome, peso, dificuldade: dif }]);
+
+      if (error) {
+        showToast("Erro ao cadastrar matéria: " + error.message, 'error');
+      } else {
+        showToast("Matéria cadastrada com sucesso!");
+        document.getElementById('form-cadastrar-materia').reset();
+        fecharModal('modal-materia-completa');
+        carregarDadosEditalECiclo();
+      }
+    });
+
+    // EXCLUIR MATÉRIA
+    async function deletarMateria(id) {
+      const { error } = await db.from('materias').delete().eq('id', id);
+      if (error) {
+        showToast("Erro ao remover: " + error.message, 'error');
+      } else {
+        showToast("Matéria removida do edital!");
+        carregarDadosEditalECiclo();
+      }
+    }
+
+    // HORAS DE ESTUDO
+    async function finalizarEGravarSessao() {
+      let mins = Math.max(1, Math.round((30 * 60 - timerSeconds) / 60));
+      if (timerSeconds === 0) mins = 30;
+
+      await db.from('sessoes_estudo').insert([{ materia_nome: activeMateria, minutos_estudados: mins }]);
+      showToast(`Sessão de ${mins} min registrada!`);
+      fecharModal('modal-timer');
+      resetTimer();
+      carregarHorasTotais();
+    }
+
+    async function carregarHorasTotais() {
+      const { data } = await db.from('sessoes_estudo').select('minutos_estudados');
+      if (data) {
+        const totalMins = data.reduce((acc, curr) => acc + curr.minutos_estudados, 0);
+        document.getElementById('dash-total-horas').innerText = `${(totalMins / 60).toFixed(1)}h`;
+      }
+    }
+
+    function salvarConfiguracoes() {
+      const newName = document.getElementById('config-name').value;
+      if (newName) {
+        currentUser.name = newName;
+        localStorage.setItem('rendimento_user', JSON.stringify(currentUser));
+        document.getElementById('user-display-name').innerText = newName;
+        showToast('Configurações salvas!');
+      }
+    }
+
+    // UTILITÁRIOS DA INTERFACE
+    function navigate(view) {
+      const views = ['dashboard', 'edital', 'erros', 'simulados', 'config'];
+      views.forEach(v => {
+        document.getElementById(`view-${v}`)?.classList.toggle('hidden', v !== view);
+        document.getElementById(`menu-${v}`)?.classList.toggle('active', v === view);
+      });
+      if (view === 'dashboard') renderCharts();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // CRONÔMETRO LÓGICA
+    let timerInterval = null;
+    let timerSeconds = 30 * 60;
+    let isTimerRunning = false;
+
+    function openTimerModal(materia) {
+      activeMateria = materia;
+      document.getElementById('timer-materia-title').innerText = `Estudando: ${materia}`;
+      openModal('modal-timer');
+    }
+
+    function estudarMateriaRecomendada() {
+      openTimerModal(document.getElementById('hero-materia').innerText);
     }
 
     function updateTimerDisplay() {
-      const hrs = Math.floor(timerSeconds / 3600).toString().padStart(2, '0');
-      const mins = Math.floor((timerSeconds % 3600) / 60).toString().padStart(2, '0');
-      const secs = (timerSeconds % 60).toString().padStart(2, '0');
-      document.getElementById('timerDisplay').textContent = `${hrs}:${mins}:${secs}`;
+      const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+      const s = (timerSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('timer-clock').innerText = `${m}:${s}`;
     }
 
-    function renderHistory() {
-      const list = document.getElementById('historyList');
+    function addMinutes(mins) {
+      timerSeconds += mins * 60;
+      updateTimerDisplay();
+    }
 
-      if (history.length === 0) {
-        list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nenhuma sessão registrada.</p>`;
-        return;
+    function toggleTimer() {
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        document.getElementById('label-timer-btn').innerText = 'Continuar';
+      } else {
+        isTimerRunning = true;
+        document.getElementById('label-timer-btn').innerText = 'Pausar';
+        timerInterval = setInterval(() => {
+          if (timerSeconds > 0) {
+            timerSeconds--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(timerInterval);
+            showToast("Sessão finalizada!");
+          }
+        }, 1000);
       }
+    }
 
-      list.innerHTML = history.map(h => {
-        const mins = Math.round(h.duration / 60);
-        return `
-          <div class="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-700">
-            <div>
-              <p class="font-semibold text-slate-200">${h.subjectName}</p>
-              <p class="text-[10px] text-slate-500">${h.date}</p>
-            </div>
-            <span class="text-xs font-mono font-bold text-amber-500">${mins} min</span>
-          </div>
-        `;
-      }).join('');
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      timerSeconds = 30 * 60;
+      updateTimerDisplay();
+      document.getElementById('label-timer-btn').innerText = 'Iniciar';
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const icon = document.getElementById('theme-icon');
+      if (body.getAttribute('data-theme') === 'dark') {
+        body.removeAttribute('data-theme');
+        icon.className = 'ph ph-moon';
+      } else {
+        body.setAttribute('data-theme', 'dark');
+        icon.className = 'ph ph-sun';
+      }
+    }
+
+    function renderCharts() {
+      const ctx = document.getElementById('chartAcertos');
+      if (ctx) {
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['Cadastros Reais'],
+            datasets: [{ label: 'Horas Dedicadas', data: [0], backgroundColor: '#2563eb', borderRadius: 6 }]
+          }
+        });
+      }
     }
   </script>
 </body>
